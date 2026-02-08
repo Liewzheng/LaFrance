@@ -219,6 +219,10 @@ class FrenchTTS:
     def _play_audio(self, file_path):
         """播放音频文件"""
         try:
+            # 抑制 pygame 的警告
+            import warnings
+            warnings.filterwarnings("ignore", category=UserWarning)
+            
             # 尝试使用 pygame 播放（跨平台）
             import pygame
             pygame.mixer.init()
@@ -230,7 +234,7 @@ class FrenchTTS:
                 pygame.time.Clock().tick(10)
                 
         except Exception as e:
-            print(f"⚠️ 自动播放失败: {e}")
+            print(f"⚠️  自动播放失败: {e}")
             print(f"   请手动播放: {file_path}")
     
     def list_voices(self):
