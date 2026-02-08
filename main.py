@@ -194,15 +194,29 @@ class FrenchTTS:
             volume=self.volume
         )
         
-        # 保存音频文件（带简单进度指示）
-        if verbose:
-            import sys
-            print("█", end="", flush=True)
+        # 保存音频文件（带进度动画）
+        import asyncio
+        spinner = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
+        done = False
         
-        await communicate.save(output_path)
+        async def show_spinner():
+            i = 0
+            while not done:
+                if verbose:
+                    print(f"\r🔊 {spinner[i % len(spinner)]}", end="", flush=True)
+                await asyncio.sleep(0.1)
+                i += 1
+        
+        async def save_audio():
+            nonlocal done
+            await communicate.save(output_path)
+            done = True
+        
+        # 同时运行 spinner 和保存
+        await asyncio.gather(show_spinner(), save_audio())
         
         if verbose:
-            print("█ 100%")
+            print(f"\r🔊 ████████ 100%")
             print(f"✅ 已生成: {output_path}")
         
         # 保存到缓存
