@@ -255,24 +255,26 @@
 | **Bonne soirée** | /bɔn swaʁe/ | 晚上告别 | 祝你有个美好的夜晚！|
 | **Bonne nuit** | /bɔn nɥi/ | 睡前 | 晚安！（只用于睡觉前的告别）|
 
-| 甜品 | 性别 | 冠词 |
-|------|------|------|
-| éclair（闪电泡芙）| 阳性 | **un** éclair |
-| croissant（可颂）| 阳性 | **un** croissant |
-| macaron（马卡龙）| 阳性 | **un** macaron |
-| gâteau（蛋糕）| 阳性 | **un** gâteau |
-| tarte（挞）| 阴性 | **une** tarte |
-| glace（冰淇淋）| 阴性 | **une** glace |
-| crêpe（可丽饼）| 阴性 | **une** crêpe |
-| brioche（布里欧修）| 阴性 | **une** brioche |
+### 常见甜品性别
+
+| 甜品 | 音标 | 性别 | 冠词 |
+|------|------|------|------|
+| éclair（闪电泡芙）| /eklɛʁ/ | 阳性 | **un** éclair |
+| croissant（可颂）| /kʁwasɑ̃/ | 阳性 | **un** croissant |
+| macaron（马卡龙）| /makaʁɔ̃/ | 阳性 | **un** macaron |
+| gâteau（蛋糕）| /ɡato/ | 阳性 | **un** gâteau |
+| tarte（挞）| /taʁt/ | 阴性 | **une** tarte |
+| glace（冰淇淋）| /ɡlas/ | 阴性 | **une** glace |
+| crêpe（可丽饼）| /kʁɛp/ | 阴性 | **une** crêpe |
+| brioche（布里欧修）| /bʁijɔʃ/ | 阴性 | **une** brioche |
 
 ### 常见饮料性别
 
-| 饮料 | 性别 | 冠词 | 例句 |
-|------|------|------|------|
-| café（咖啡）| 阳性 | **un** café | Je voudrais **un** café. |
-| thé（茶）| 阳性 | **un** thé | Je voudrais **un** thé. |
-| jus（果汁）| 阳性 | **un** jus | Je voudrais **un** jus d'orange. |
-| vin（葡萄酒）| 阳性 | **un** vin | **un** verre de vin（一杯葡萄酒）|
-| eau（水）| 阴性 | **une** eau | Je voudrais **une** eau. |
-| bière（啤酒）| 阴性 | **une** bière | Je voudrais **une** bière. |
+| 饮料 | 音标 | 性别 | 冠词 | 例句 |
+|------|------|------|------|------|
+| café（咖啡）| /kafe/ | 阳性 | **un** café | Je voudrais **un** café. |
+| thé（茶）| /te/ | 阳性 | **un** thé | Je voudrais **un** thé. |
+| jus（果汁）| /ʒy/ | 阳性 | **un** jus | Je voudrais **un** jus d'orange. |
+| vin（葡萄酒）| /vɛ̃/ | 阳性 | **un** vin | **un** verre de vin（一杯葡萄酒）|
+| eau（水）| /o/ | 阴性 | **une** eau | Je voudrais **une** eau. |
+| bière（啤酒）| /bjɛʁ/ | 阴性 | **une** bière | Je voudrais **une** bière. |
