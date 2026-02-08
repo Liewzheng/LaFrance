@@ -10,6 +10,8 @@ import asyncio
 import edge_tts
 import os
 import re
+import json
+import hashlib
 from datetime import datetime
 
 # 启用 readline 支持（光标移动、历史记录）
@@ -49,7 +51,7 @@ FRENCH_VOICES = {
 class FrenchTTS:
     """法语语音生成器类"""
     
-    def __init__(self, voice=None, rate=None, volume=None):
+    def __init__(self, voice=None, rate=None, volume=None, use_cache=True):
         """
         初始化 TTS 引擎
         
@@ -57,6 +59,7 @@ class FrenchTTS:
             voice: 声音名称 (henri/denise/eloise/remy/vivienne)
             rate: 语速 (+50% 加快, -50% 减慢)
             volume: 音量 (+0% 默认)
+            use_cache: 是否使用缓存（默认开启）
         """
         voice = voice or DEFAULT_VOICE
         rate = rate or DEFAULT_RATE
@@ -67,9 +70,57 @@ class FrenchTTS:
         self.volume = volume
         self.output_dir = OUTPUT_DIR
         self.auto_play = AUTO_PLAY
+        self.use_cache = use_cache
+        
+        # 缓存文件路径
+        self.cache_file = os.path.join(self.output_dir, ".cache.json")
+        self.cache = self._load_cache()
         
         # 确保输出目录存在
         os.makedirs(self.output_dir, exist_ok=True)
+    
+    def _load_cache(self):
+        """加载缓存"""
+        if os.path.exists(self.cache_file):
+            try:
+                with open(self.cache_file, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+            except:
+                return {}
+        return {}
+    
+    def _save_cache(self):
+        """保存缓存"""
+        try:
+            with open(self.cache_file, 'w', encoding='utf-8') as f:
+                json.dump(self.cache, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            print(f"⚠️  缓存保存失败: {e}")
+    
+    def _get_cache_key(self, text):
+        """生成缓存键（基于文本内容+声音+语速）"""
+        content = f"{text}|{self.voice}|{self.rate}|{self.volume}"
+        return hashlib.md5(content.encode('utf-8')).hexdigest()[:16]
+    
+    def clear_cache(self):
+        """清除缓存"""
+        count = len(self.cache)
+        self.cache = {}
+        if os.path.exists(self.cache_file):
+            os.remove(self.cache_file)
+        print(f"🗑️  已清除 {count} 条缓存")
+    
+    def show_cache_info(self):
+        """显示缓存信息"""
+        print(f"\n📦 缓存信息:")
+        print(f"   缓存文件: {self.cache_file}")
+        print(f"   缓存条目: {len(self.cache)}")
+        if self.cache:
+            print("   最近的条目:")
+            for i, (key, path) in enumerate(list(self.cache.items())[-5:], 1):
+                filename = os.path.basename(path)
+                print(f"     {i}. {filename}")
+        print()
     
     def _sanitize_filename(self, text, max_length=30):
         """清理文本，生成安全的文件名"""
@@ -87,7 +138,7 @@ class FrenchTTS:
             result = result[:max_length].rstrip('_')
         return result if result else "audio"
     
-    async def speak(self, text, filename=None, play=None):
+    async def speak(self, text, filename=None, play=None, force_regenerate=False):
         """
         将文本转为语音
         
@@ -95,14 +146,32 @@ class FrenchTTS:
             text: 要朗读的法语文本
             filename: 输出文件名 (默认自动生成)
             play: 是否自动播放 (默认读取配置)
+            force_regenerate: 强制重新生成（忽略缓存）
             
         Returns:
             生成的音频文件路径
         """
         if play is None:
             play = self.auto_play
+        
+        # 检查缓存
+        cache_key = self._get_cache_key(text)
+        cached_path = None
+        
+        if self.use_cache and not force_regenerate and cache_key in self.cache:
+            cached_path = self.cache[cache_key]
+            # 检查文件是否还存在
+            if os.path.exists(cached_path):
+                print(f"♻️  使用缓存: {os.path.basename(cached_path)}")
+                if play:
+                    self._play_audio(cached_path)
+                return cached_path
+            else:
+                # 文件被删了，从缓存移除
+                del self.cache[cache_key]
+        
+        # 生成新文件名
         if filename is None:
-            # 自动生成文件名: 202602081840_Salut.mp3
             timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
             content = self._sanitize_filename(text)
             filename = f"{timestamp}_{content}.mp3"
@@ -123,6 +192,11 @@ class FrenchTTS:
         # 保存音频文件
         await communicate.save(output_path)
         print(f"✅ 已生成: {output_path}")
+        
+        # 保存到缓存
+        if self.use_cache:
+            self.cache[cache_key] = output_path
+            self._save_cache()
         
         # 自动播放
         if play:
@@ -209,6 +283,9 @@ async def interactive_mode():
   /voice <name>  - 切换声音 (henri/denise/eloise/remy/vivienne)
   /rate <+/-n%>  - 调整语速 (/rate +20% 或 /rate -30%)
   /list          - 列出所有声音
+  /cache         - 查看缓存信息
+  /clear         - 清除缓存
+  !<text>        - 强制重新生成（如：!Bonjour）
   /help          - 显示帮助
   quit           - 退出
                 """)
@@ -218,9 +295,24 @@ async def interactive_mode():
                 tts.list_voices()
                 continue
             
+            if text == "/cache":
+                tts.show_cache_info()
+                continue
+            
+            if text == "/clear":
+                tts.clear_cache()
+                continue
+            
+            # 检查是否强制重新生成
+            force_regenerate = False
+            if text.startswith("!"):
+                force_regenerate = True
+                text = text[1:].strip()
+                print("🔄 强制重新生成...")
+            
             # 生成语音
             print("🔊 生成中...")
-            await tts.speak(text)
+            await tts.speak(text, force_regenerate=force_regenerate)
             
         except KeyboardInterrupt:
             print("\nAu revoir! 👋")
