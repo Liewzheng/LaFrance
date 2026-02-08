@@ -138,7 +138,7 @@ class FrenchTTS:
             result = result[:max_length].rstrip('_')
         return result if result else "audio"
     
-    async def speak(self, text, filename=None, play=None, force_regenerate=False):
+    async def speak(self, text, filename=None, play=None, force_regenerate=False, verbose=True):
         """
         将文本转为语音
         
@@ -147,6 +147,7 @@ class FrenchTTS:
             filename: 输出文件名 (默认自动生成)
             play: 是否自动播放 (默认读取配置)
             force_regenerate: 强制重新生成（忽略缓存）
+            verbose: 是否显示提示信息
             
         Returns:
             生成的音频文件路径
@@ -162,7 +163,8 @@ class FrenchTTS:
             cached_path = self.cache[cache_key]
             # 检查文件是否还存在
             if os.path.exists(cached_path):
-                print(f"♻️  使用缓存: {os.path.basename(cached_path)}")
+                if verbose:
+                    print(f"♻️  使用缓存: {os.path.basename(cached_path)}")
                 if play:
                     self._play_audio(cached_path)
                 return cached_path
@@ -181,6 +183,9 @@ class FrenchTTS:
             
         output_path = os.path.join(self.output_dir, filename)
         
+        if verbose:
+            print("🔊 ", end="", flush=True)
+        
         # 创建 TTS 通信对象
         communicate = edge_tts.Communicate(
             text=text,
@@ -189,9 +194,16 @@ class FrenchTTS:
             volume=self.volume
         )
         
-        # 保存音频文件
+        # 保存音频文件（带简单进度指示）
+        if verbose:
+            import sys
+            print("█", end="", flush=True)
+        
         await communicate.save(output_path)
-        print(f"✅ 已生成: {output_path}")
+        
+        if verbose:
+            print("█ 100%")
+            print(f"✅ 已生成: {output_path}")
         
         # 保存到缓存
         if self.use_cache:
@@ -308,11 +320,9 @@ async def interactive_mode():
             if text.startswith("!"):
                 force_regenerate = True
                 text = text[1:].strip()
-                print("🔄 强制重新生成...")
             
-            # 生成语音
-            print("🔊 生成中...")
-            await tts.speak(text, force_regenerate=force_regenerate)
+            # 生成语音（缓存命中时会自动播放，无提示）
+            await tts.speak(text, force_regenerate=force_regenerate, verbose=False)
             
         except KeyboardInterrupt:
             print("\nAu revoir! 👋")
