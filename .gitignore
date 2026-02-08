@@ -8,7 +8,7 @@ env/
 venv/
 
 # Audio samples (user generated)
-samples/*.mp3
+samples/
 
 # OS
 .DS_Store
