@@ -6,12 +6,16 @@ French Text-to-Speech Generator
 支持多种法语声音，可调节语速和音调
 """
 
+# 抑制 pygame 社区欢迎信息
+import os
+os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
+
 import asyncio
 import edge_tts
-import os
 import re
 import json
 import hashlib
+import warnings
 from datetime import datetime
 
 # 启用 readline 支持（光标移动、历史记录）
@@ -163,8 +167,7 @@ class FrenchTTS:
             cached_path = self.cache[cache_key]
             # 检查文件是否还存在
             if os.path.exists(cached_path):
-                if verbose:
-                    print(f"♻️  使用缓存: {os.path.basename(cached_path)}")
+                # 缓存命中 - 无论 verbose 如何都静默播放
                 if play:
                     self._play_audio(cached_path)
                 return cached_path
@@ -339,8 +342,8 @@ async def interactive_mode():
                 force_regenerate = True
                 text = text[1:].strip()
             
-            # 生成语音（缓存命中时会自动播放，无提示）
-            await tts.speak(text, force_regenerate=force_regenerate, verbose=False)
+            # 生成语音（新内容会显示进度，缓存命中则静默）
+            await tts.speak(text, force_regenerate=force_regenerate, verbose=True)
             
         except KeyboardInterrupt:
             print("\nAu revoir! 👋")
