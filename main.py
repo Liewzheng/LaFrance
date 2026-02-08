@@ -1,0 +1,260 @@
+#!/usr/bin/env python3
+"""
+LaFrance - 法语语音生成器
+French Text-to-Speech Generator
+
+支持多种法语声音，可调节语速和音调
+"""
+
+import asyncio
+import edge_tts
+import os
+from datetime import datetime
+
+# 尝试读取配置文件
+try:
+    from config import DEFAULT_VOICE, DEFAULT_RATE, DEFAULT_VOLUME, OUTPUT_DIR, AUTO_PLAY
+except ImportError:
+    # 默认配置
+    DEFAULT_VOICE = "denise"
+    DEFAULT_RATE = "+0%"
+    DEFAULT_VOLUME = "+0%"
+    OUTPUT_DIR = "samples"
+    AUTO_PLAY = True
+
+# 法语声音选项
+FRENCH_VOICES = {
+    "henri": "fr-FR-HenriNeural",      # 男声 - 标准
+    "denise": "fr-FR-DeniseNeural",    # 女声 - 温柔
+    "eloise": "fr-FR-EloiseNeural",    # 女声 - 年轻
+    "remy": "fr-FR-RemyMultilingualNeural",    # 男声 - 多语言
+    "vivienne": "fr-FR-VivienneMultilingualNeural",  # 女声 - 多语言
+}
+
+class FrenchTTS:
+    """法语语音生成器类"""
+    
+    def __init__(self, voice=None, rate=None, volume=None):
+        """
+        初始化 TTS 引擎
+        
+        Args:
+            voice: 声音名称 (henri/denise/eloise/remy/vivienne)
+            rate: 语速 (+50% 加快, -50% 减慢)
+            volume: 音量 (+0% 默认)
+        """
+        voice = voice or DEFAULT_VOICE
+        rate = rate or DEFAULT_RATE
+        volume = volume or DEFAULT_VOLUME
+        
+        self.voice = FRENCH_VOICES.get(voice, FRENCH_VOICES["denise"])
+        self.rate = rate
+        self.volume = volume
+        self.output_dir = OUTPUT_DIR
+        self.auto_play = AUTO_PLAY
+        
+        # 确保输出目录存在
+        os.makedirs(self.output_dir, exist_ok=True)
+    
+    async def speak(self, text, filename=None, play=None):
+        """
+        将文本转为语音
+        
+        Args:
+            text: 要朗读的法语文本
+            filename: 输出文件名 (默认自动生成)
+            play: 是否自动播放 (默认读取配置)
+            
+        Returns:
+            生成的音频文件路径
+        """
+        if play is None:
+            play = self.auto_play
+        if filename is None:
+            # 自动生成文件名: french_20250208_154630.mp3
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"french_{timestamp}.mp3"
+        
+        if not filename.endswith('.mp3'):
+            filename += '.mp3'
+            
+        output_path = os.path.join(self.output_dir, filename)
+        
+        # 创建 TTS 通信对象
+        communicate = edge_tts.Communicate(
+            text=text,
+            voice=self.voice,
+            rate=self.rate,
+            volume=self.volume
+        )
+        
+        # 保存音频文件
+        await communicate.save(output_path)
+        print(f"✅ 已生成: {output_path}")
+        
+        # 自动播放
+        if play:
+            self._play_audio(output_path)
+            
+        return output_path
+    
+    def _play_audio(self, file_path):
+        """播放音频文件"""
+        try:
+            # 尝试使用 pygame 播放（跨平台）
+            import pygame
+            pygame.mixer.init()
+            pygame.mixer.music.load(file_path)
+            pygame.mixer.music.play()
+            
+            # 等待播放完成
+            while pygame.mixer.music.get_busy():
+                pygame.time.Clock().tick(10)
+                
+        except Exception as e:
+            print(f"⚠️ 自动播放失败: {e}")
+            print(f"   请手动播放: {file_path}")
+    
+    def list_voices(self):
+        """列出所有可用的法语声音"""
+        print("\n🎙️  可用的法语声音:")
+        print("-" * 40)
+        for name, voice_id in FRENCH_VOICES.items():
+            gender = "男声" if "Henri" in voice_id or "Remy" in voice_id else "女声"
+            print(f"  • {name:12} - {gender:6} ({voice_id})")
+        print()
+
+
+def quick_speak(text, voice="denise"):
+    """快速朗读法语文本（同步接口）"""
+    tts = FrenchTTS(voice=voice)
+    asyncio.run(tts.speak(text))
+
+
+async def interactive_mode():
+    """交互式模式"""
+    print("\n" + "="*50)
+    print("🥐  LaFrance - 法语语音生成器")
+    print("="*50)
+    
+    tts = FrenchTTS()
+    tts.list_voices()
+    
+    print("输入你要朗读的法语句子 (输入 'quit' 退出):")
+    print("-"*50)
+    
+    while True:
+        try:
+            text = input("\n🇫🇷 > ").strip()
+            
+            if text.lower() in ['quit', 'exit', 'q']:
+                print("Au revoir! 👋")
+                break
+            
+            if not text:
+                continue
+                
+            # 特殊命令
+            if text.startswith("/voice "):
+                voice = text.split()[1]
+                if voice in FRENCH_VOICES:
+                    tts.voice = FRENCH_VOICES[voice]
+                    print(f"✓ 已切换到: {voice}")
+                else:
+                    print(f"✗ 未知声音: {voice}")
+                    tts.list_voices()
+                continue
+            
+            if text.startswith("/rate "):
+                rate = text.split()[1]
+                tts.rate = rate
+                print(f"✓ 语速已设为: {rate}")
+                continue
+            
+            if text == "/help":
+                print("""
+📖 命令列表:
+  /voice <name>  - 切换声音 (henri/denise/eloise/remy/vivienne)
+  /rate <+/-n%>  - 调整语速 (/rate +20% 或 /rate -30%)
+  /list          - 列出所有声音
+  /help          - 显示帮助
+  quit           - 退出
+                """)
+                continue
+            
+            if text == "/list":
+                tts.list_voices()
+                continue
+            
+            # 生成语音
+            print("🔊 生成中...")
+            await tts.speak(text)
+            
+        except KeyboardInterrupt:
+            print("\nAu revoir! 👋")
+            break
+        except Exception as e:
+            print(f"❌ 错误: {e}")
+
+
+# 预设的法语学习例句
+SAMPLE_SENTENCES = [
+    "Bonjour Madame, je voudrais un café.",
+    "Je m'appelle Paul, et toi?",
+    "Je parle arabe avec ma voisine marocaine.",
+    "Est-ce que Paris est propre?",
+    "Au revoir!",
+    "S'il vous plaît.",
+    "Embrasse-moi, s'il te plaît.",
+    "Leo mange souvent ici.",
+    "Tu connais Lisa? Elle travaille ici.",
+    "Je travaille aussi ici.",
+]
+
+
+async def demo_mode():
+    """演示模式 - 朗读所有学习例句"""
+    print("\n🎬 演示模式 - 朗读法语学习例句\n")
+    
+    # 不同声音朗读不同句子
+    voices = ["denise", "henri", "eloise"]
+    
+    for i, sentence in enumerate(SAMPLE_SENTENCES[:6], 1):
+        voice = voices[i % len(voices)]
+        tts = FrenchTTS(voice=voice)
+        
+        print(f"\n{i}. [{voice}] {sentence}")
+        await tts.speak(sentence, filename=f"demo_{i:02d}_{voice}.mp3", play=True)
+        await asyncio.sleep(0.5)  # 停顿一下
+    
+    print("\n✅ 演示完成！所有音频保存在 samples/ 目录")
+
+
+if __name__ == "__main__":
+    import sys
+    
+    if len(sys.argv) > 1:
+        command = sys.argv[1]
+        
+        if command == "demo":
+            # 演示模式
+            asyncio.run(demo_mode())
+            
+        elif command == "quick":
+            # 快速朗读: python main.py quick "Bonjour"
+            text = sys.argv[2] if len(sys.argv) > 2 else "Bonjour"
+            voice = sys.argv[3] if len(sys.argv) > 3 else "denise"
+            quick_speak(text, voice)
+            
+        elif command == "list":
+            # 列出声音
+            tts = FrenchTTS()
+            tts.list_voices()
+            
+        else:
+            # 直接朗读参数文本
+            text = " ".join(sys.argv[1:])
+            quick_speak(text)
+    else:
+        # 交互模式
+        asyncio.run(interactive_mode())
