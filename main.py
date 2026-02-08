@@ -56,6 +56,22 @@ class FrenchTTS:
         # 确保输出目录存在
         os.makedirs(self.output_dir, exist_ok=True)
     
+    def _sanitize_filename(self, text, max_length=30):
+        """清理文本，生成安全的文件名"""
+        # 移除或替换非法字符
+        import re
+        # 只保留字母、数字、空格和常见标点
+        cleaned = re.sub(r'[^\w\s\-\']', '', text)
+        # 替换多个空格为单个空格
+        cleaned = re.sub(r'\s+', ' ', cleaned).strip()
+        # 限制长度，取前几个单词
+        words = cleaned.split()[:4]  # 最多取4个单词
+        result = '_'.join(words)
+        # 限制总长度
+        if len(result) > max_length:
+            result = result[:max_length].rstrip('_')
+        return result if result else "audio"
+    
     async def speak(self, text, filename=None, play=None):
         """
         将文本转为语音
@@ -71,9 +87,10 @@ class FrenchTTS:
         if play is None:
             play = self.auto_play
         if filename is None:
-            # 自动生成文件名: french_20250208_154630.mp3
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"french_{timestamp}.mp3"
+            # 自动生成文件名: 202602081840_Salut.mp3
+            timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+            content = self._sanitize_filename(text)
+            filename = f"{timestamp}_{content}.mp3"
         
         if not filename.endswith('.mp3'):
             filename += '.mp3'
