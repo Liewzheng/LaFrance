@@ -9,7 +9,22 @@ French Text-to-Speech Generator
 import asyncio
 import edge_tts
 import os
+import re
 from datetime import datetime
+
+# 启用 readline 支持（光标移动、历史记录）
+try:
+    import readline
+    # 设置历史记录文件
+    histfile = os.path.expanduser("~/.lafrance_history")
+    try:
+        readline.read_history_file(histfile)
+        readline.set_history_length(1000)
+    except FileNotFoundError:
+        pass
+except ImportError:
+    readline = None
+    print("⚠️  readline 未安装，光标移动和历史记录功能不可用")
 
 # 尝试读取配置文件
 try:
@@ -212,6 +227,13 @@ async def interactive_mode():
             break
         except Exception as e:
             print(f"❌ 错误: {e}")
+    
+    # 退出时保存历史记录
+    if readline:
+        try:
+            readline.write_history_file(histfile)
+        except:
+            pass
 
 
 # 预设的法语学习例句

@@ -2,3 +2,4 @@ edge-tts
 playsound3
 pygame
 asyncio
+# Mac/Linux 已内置 readline，Windows 用户可能需要: pip install pyreadline3
